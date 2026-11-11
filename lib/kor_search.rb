@@ -23,7 +23,7 @@ module KorSearch
   # Date parser used to coerce date params. Must respond to `parse(value)`,
   # returning a Date or nil, and `parse_range(value)`, returning [from, to]
   # (either end may be nil) or nil. `require "kor_search/natural_dates"` swaps
-  # in a Chronic-backed parser that understands "last month", "mtd", etc.
+  # in the kor_dates parser, which understands "last month", "mtd", etc.
   mattr_accessor :date_parser, default: KorSearch::Dates::Basic
 
   # When true (the default), a registered search whose scope doesn't exist on

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-# Opt-in: natural-language date params ("last month", "mtd", "since jan").
-# Requires the chronic gem in your Gemfile.
+# Opt-in: natural-language date params ("last month", "mtd", "since jan"),
+# powered by the kor_dates gem. Add `gem "kor_dates"` to your Gemfile.
 require "kor_search"
-require_relative "dates/natural"
+require "kor_dates"
 
-KorSearch.date_parser = KorSearch::Dates::Natural
+KorSearch.date_parser = KorDates

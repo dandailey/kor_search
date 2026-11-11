@@ -5,7 +5,7 @@ module KorSearch
     # Default date parser. Understands ISO 8601 dates and ranges written as
     # "2026-01-01..2026-01-31" or "2026-01-01 to 2026-01-31". Anything else is
     # left alone. For natural language ("last month", "mtd", "since jan"),
-    # `require "kor_search/natural_dates"`.
+    # `require "kor_search/natural_dates"` (uses the kor_dates gem).
     module Basic
       module_function
 

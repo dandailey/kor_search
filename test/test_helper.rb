@@ -81,7 +81,7 @@ end
 
 class KorSearchTest < Minitest::Test
   def setup
-    @saved_parser = KorSearch.date_parser
+    KorSearch.date_parser = KorSearch::Dates::Basic
     @saved_strict = KorSearch.strict_scopes
     @saved_resolvers = KorSearch.searcher_resolvers.dup
     Product.delete_all
@@ -90,7 +90,6 @@ class KorSearchTest < Minitest::Test
   end
 
   def teardown
-    KorSearch.date_parser = @saved_parser
     KorSearch.strict_scopes = @saved_strict
     KorSearch.searcher_resolvers = @saved_resolvers
   end

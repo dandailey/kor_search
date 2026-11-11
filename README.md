@@ -49,10 +49,10 @@ KorSearch puts that mapping in one declarative class per model:
 gem "kor_search", github: "dandailey/kor_search"
 
 gem "ransack"  # optional: enables field predicates (search_fields)
-gem "chronic"  # optional: enables natural-language dates
+gem "kor_dates", github: "dandailey/kor_dates"  # optional: natural-language dates
 ```
 
-KorSearch requires Ruby 3.1+ and ActiveRecord 7.0+. Ransack and Chronic are optional. Without Ransack, `search_fields` declarations are inert and everything else works.
+KorSearch requires Ruby 3.1+ and ActiveRecord 7.0+. Ransack and kor_dates are optional. Without Ransack, `search_fields` declarations are inert and everything else works.
 
 ## Quick start
 
@@ -350,7 +350,7 @@ With a range, the comparison predicates use the sensible edge: `released_on_gteq
 
 ### Natural-language dates
 
-The default parser understands ISO 8601 only. For people-friendly input, add `chronic` to your Gemfile and opt in:
+The default parser understands ISO 8601 only. For people-friendly input, add [kor_dates](https://github.com/dandailey/kor_dates) to your Gemfile and opt in:
 
 ```ruby
 # config/initializers/kor_search.rb
@@ -372,7 +372,7 @@ Then every date param also understands:
 
 So `created_at=last month` or `due_on=next week` work the same from code and from a URL.
 
-Dates written without a year resolve forward, following Chronic: in November, `jan 5` means the coming January. Include the year when it matters.
+Dates written without a year resolve forward (the kor_dates default): in November, `jan 5` means the coming January. Include the year when it matters.
 
 ### A custom parser
 
@@ -410,7 +410,7 @@ Use these to generate API documentation, build search UIs from metadata, or writ
 # config/initializers/kor_search.rb
 KorSearch.configure do |config|
   # Parser for date params (default: ISO 8601 only)
-  config.date_parser = KorSearch::Dates::Natural
+  config.date_parser = KorDates
 
   # Raise when a registered search's scope is missing (default: true)
   config.strict_scopes = true
@@ -421,7 +421,7 @@ KorSearch.configure do |config|
 end
 ```
 
-`KorSearch::Dates::Natural` needs `require "kor_search/natural_dates"` (or `"kor_search/dates/natural"`) first.
+`KorDates` needs `require "kor_dates"` first; `require "kor_search/natural_dates"` does both.
 
 ## Best practices
 
@@ -467,7 +467,7 @@ bundle install
 bundle exec rake test
 ```
 
-The suite runs against an in-memory SQLite database with Ransack and Chronic installed. It's currently exercised on Ruby 4.0 and ActiveRecord 8.1; other versions in the supported range are expected to work but aren't yet covered by CI.
+The suite runs against an in-memory SQLite database with Ransack and kor_dates installed. It's currently exercised on Ruby 4.0 and ActiveRecord 8.1; other versions in the supported range are expected to work but aren't yet covered by CI.
 
 ## Origins
 
