@@ -65,7 +65,7 @@ class ProductSearcher < KorSearch::Searcher
   search_associations :manufacturer
 
   text_search :q, columns: %i[name sku], extended: %i[manufacturer]
-  text_search :maker, through: %i[manufacturer]
+  text_search :maker, through: {manufacturer: :q}
 
   boolean_search :active
   simple_search :under, method: :priced_under

@@ -61,8 +61,10 @@ module KorSearch
 
       # The model this searcher manages: explicit, or inferred from the class
       # name. Stageline::StageSearcher tries Stageline::Stage, then Stage.
+      # A subclass whose name doesn't match a model (SpecialProductSearcher <
+      # ProductSearcher) keeps its parent's model.
       def model_class
-        target_model || inferred_model
+        target_model || inferred_model || (superclass.model_class if superclass < KorSearch::Searcher)
       end
 
       def inferred_model
@@ -116,8 +118,8 @@ module KorSearch
       #   boolean_search :featured do |query|
       #     query.where(featured: true)
       #   end
-      def boolean_search(*names, method: nil, &block)
-        each_search_name(names, method) do |name, scope|
+      def boolean_search(*names, method: nil, **mapping, &block)
+        each_search_name(names, mapping, method) do |name, scope|
           register_search(name, type: :boolean, method: scope, block: block)
         end
       end
@@ -131,8 +133,8 @@ module KorSearch
       #     min, max = value.split("-").map(&:to_f)
       #     query.where(price: min..max)
       #   end
-      def simple_search(*names, method: nil, &block)
-        each_search_name(names, method) do |name, scope|
+      def simple_search(*names, method: nil, **mapping, &block)
+        each_search_name(names, mapping, method) do |name, scope|
           register_search(name, type: :simple, method: scope, block: block)
         end
       end
@@ -143,7 +145,9 @@ module KorSearch
       #             ("table.column" reaches a joined table)
       # - block:    custom logic; return a narrowed relation
       # - through:  belongs_to associations whose searcher has a text search
-      #             of the same name; a record matches when its parent does
+      #             of the same name; a record matches when its parent does.
+      #             Map to a differently named search with a hash:
+      #             through: {company: :q}
       # - extended: like through:, but only applied when the search is run
       #             with `extended: true` (for wider, costlier searches)
       #
@@ -158,8 +162,8 @@ module KorSearch
         sources = []
         sources << {kind: :columns, columns: Array(columns)} if columns.present?
         sources << {kind: :block, block: block} if block
-        Array(through).each { |assoc| sources << {kind: :association, association: assoc.to_sym} }
-        Array(extended).each { |assoc| sources << {kind: :association, association: assoc.to_sym, extended: true} }
+        association_sources(name, through).each { |source| sources << source }
+        association_sources(name, extended).each { |source| sources << source.merge(extended: true) }
 
         # Keep sources added with text_source (by a base class, say), so a
         # subclass declaring its own text search doesn't drop them.
@@ -236,8 +240,16 @@ module KorSearch
 
       private
 
-      def each_search_name(names, method)
+      def association_sources(name, associations)
+        Array.wrap(associations).flat_map do |entry|
+          pairs = entry.is_a?(Hash) ? entry.to_a : [[entry, name]]
+          pairs.map { |assoc, target| {kind: :association, association: assoc.to_sym, target: target.to_sym} }
+        end
+      end
+
+      def each_search_name(names, mapping, method)
         names = names.flatten
+        names << mapping if mapping.any?
         raise ArgumentError, "method: can only be used with a single search name" if method && names.length > 1
 
         names.each do |entry|
@@ -494,7 +506,7 @@ module KorSearch
       case source[:kind]
       when :columns then column_text_match(source[:columns], value, query)
       when :block then source[:block].call(value, query)
-      when :association then associated_text_match(name, source[:association], value, query)
+      when :association then associated_text_match(source[:association], source[:target], value, query)
       end
     end
 
@@ -508,17 +520,19 @@ module KorSearch
       query.where(conditions.reduce(:or))
     end
 
-    def associated_text_match(name, association, value, query)
+    def associated_text_match(association, target, value, query)
       reflection = model.reflect_on_association(association)
       unless reflection&.belongs_to? && !reflection.polymorphic?
-        raise ArgumentError, "#{self.class.name}: text search #{name.inspect} can only go through non-polymorphic belongs_to associations (#{association.inspect})"
+        raise ArgumentError, "#{self.class.name}: text searches can only go through non-polymorphic belongs_to associations (#{association.inspect})"
       end
 
       related_searcher = KorSearch.searcher_for(reflection.klass)
-      return nil unless related_searcher&.search_registry&.dig(name, :type) == :text
+      unless related_searcher&.search_registry&.dig(target, :type) == :text
+        raise ArgumentError, "#{self.class.name}: #{reflection.klass.name} has no searcher with a text search named #{target.inspect}"
+      end
 
       related_ids = related_searcher.new(reflection.klass.all)
-        .search(name => value)
+        .search(target => value)
         .limit(ASSOCIATED_ID_LIMIT)
         .pluck(reflection.klass.primary_key)
       return nil if related_ids.empty?

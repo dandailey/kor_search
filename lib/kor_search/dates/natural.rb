@@ -91,7 +91,7 @@ module KorSearch
 
         unless range_val.match?(/\A(after|from|before|until|since|thru|through)/)
           range_val.gsub!(relative_date_replacement_pattern) do |text|
-            parseable?(text.strip) ? " #{parse(text.strip)} " : text
+            parseable?(text.strip) ? " #{parse(text.strip).strftime("%m/%d/%Y")} " : text
           end
           range_val = range_val.strip.squish
         end
@@ -269,7 +269,7 @@ module KorSearch
       def relative_date_replacement_pattern
         /
           (?:\A|[^a-z])
-          ((next +|last +|this +)?
+          ((next[ ]+|last[ ]+|this[ ]+)?
           (su(n|nday)?|mo(n|nday)?|tu(e|es|esday)?|we(d|dnesday)?|th(u|ur|urs|ursday)?|
           fr(i|iday)?|sa(t|tur|turday)?)|today|yesterday|tomorrow|\d{1,2}(st|nd|rd|th))?
           (?:[^a-z]|\z)
